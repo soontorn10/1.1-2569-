@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ใบงานที่ 1.1 เรื่อง เหตุการณ์สำคัญตามลำดับกาลเวลา</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">    
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4F46E5; /* Indigo 600 */
+            --primary-light: #E0E7FF;
+            --secondary: #3B82F6;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --correct-bg: #D1FAE5;
+            --correct-text: #065F46;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0E7FF 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* Modern Glass Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .modern-input {
+            width: 100%;
+            background-color: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+            background-color: #FFFFFF;
+        }
+        textarea.modern-input { resize: none; min-height: 80px; }
+
+        /* Modal & Download UI */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: center;
+            z-index: 9999; padding: 14px; backdrop-filter: blur(4px); min-height: 100dvh;
+        }
+        .modal-card {
+            width: 100%; max-width: 650px; max-height: 94vh; overflow-y: auto;
+            background: #fff; border-radius: 20px; padding: 22px; position: relative;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .close-modal-btn {
+            position: absolute; top: 12px; right: 14px; width: 36px; height: 36px;
+            border: 0; border-radius: 50%; background: #F0F0F0; font-size: 1.1rem; cursor: pointer; font-weight: 700;
+        }
+        .spinner {
+            width: 52px; height: 52px; border: 5px solid #E0E0E0; border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg) } }
+        
+        #modal-generated-image {
+            display: block; width: 100%; max-width: 100%; height: auto; border-radius: 12px; border: 2px solid #DDD;
+            box-shadow: 0 4px 15px rgba(0,0,0,.12); -webkit-touch-callout: default !important;
+            -webkit-user-select: auto !important; user-select: auto !important; pointer-events: auto !important; margin: 0 auto 10px;
+        }
+        .longpress-notice {
+            background: #FFF3E0; color: #E65100; border: 1.5px dashed #FFB300; padding: 10px 14px;
+            border-radius: 10px; font-size: 0.92rem; font-weight: 700; line-height: 1.45; margin: 8px 0 14px; text-align: center;
+        }
+        
+        /* เพิ่ม CSS สำหรับตรึงปุ่มดาวน์โหลด */
+        .action-buttons { 
+            display: flex; flex-direction: column; gap: 10px; width: 100%; 
+            position: sticky; bottom: -22px; 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+            padding: 14px 0 22px; border-top: 1px solid #E2E8F0; z-index: 20;
+        }
+        
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9998; pointer-events: none; }
+        
+        @media(max-width: 640px) {
+            .modal-overlay { padding: 0; align-items: stretch; }
+            .modal-card { max-width: none; max-height: 100dvh; min-height: 100dvh; border-radius: 0; padding: 18px 14px 0; }
+            /* ปรับเมนูตรึงสำหรับมือถือ */
+            .action-buttons { bottom: 0; padding: 12px 14px 22px; width: calc(100% + 28px); margin-left: -14px; }
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6 lg:p-8 relative">
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="max-w-5xl mx-auto glass-card p-4 md:p-6 lg:p-8 flex flex-col gap-6">
+        
+        <!-- Header & Student Info in one visual block -->
+        <div class="flex flex-col lg:flex-row justify-between items-center gap-5 bg-indigo-50/70 p-4 md:p-5 rounded-xl border border-indigo-100">
+            <div class="w-full text-center lg:text-left">
+                <h1 class="text-2xl md:text-3xl font-extrabold text-indigo-700 tracking-tight">ใบงานที่ 1.1: เหตุการณ์สำคัญตามลำดับกาลเวลา</h1>
+                <p class="text-sm md:text-base text-indigo-500 font-bold mt-1">วิวัฒนาการดนตรีไทย</p>
+            </div>
+            
+            <!-- Compact Student Info Row (Mobile Optimized Grid) -->
+            <div class="w-full lg:w-auto grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 bg-white p-3.5 rounded-xl shadow-sm border border-gray-200">
+                <div class="col-span-2 flex flex-col gap-1.5">
+                    <label for="student-name" class="font-bold text-gray-700 text-xs md:text-sm">ชื่อ-สกุล <span class="text-red-500">*</span></label>
+                    <input type="text" id="student-name" class="modern-input !py-1.5 !px-2.5 text-sm" placeholder="เช่น ด.ช.มานะ ดีใจ" required>
+                </div>
+                <div class="col-span-1 flex flex-col gap-1.5 sm:border-l pl-0 sm:pl-3 border-gray-200">
+                    <label for="student-class" class="font-bold text-gray-700 text-xs md:text-sm">ชั้น <span class="text-red-500">*</span></label>
+                    <input type="text" id="student-class" class="modern-input !py-1.5 !px-2.5 text-sm" placeholder="เช่น ม.1/1" required>
+                </div>
+                <div class="col-span-1 flex flex-col gap-1.5 border-l pl-3 border-gray-200">
+                    <label for="student-number" class="font-bold text-gray-700 text-xs md:text-sm">เลขที่ <span class="text-red-500">*</span></label>
+                    <input type="number" id="student-number" class="modern-input !py-1.5 !px-2.5 text-sm" placeholder="1" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            
+            <!-- Left Column: Part 1 (Textareas) -->
+            <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-indigo-100 flex flex-col overflow-hidden relative">
+                <!-- Color Strip Top -->
+                <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-blue-500"></div>
+                
+                <div class="p-5 flex flex-col gap-5">
+                    <!-- Part 1 Header -->
+                    <div class="flex items-center gap-3 border-b border-indigo-100 pb-3">
+                        <div class="bg-gradient-to-br from-indigo-500 to-blue-600 text-white w-12 h-12 rounded-2xl shadow-md flex items-center justify-center font-black text-2xl transform -rotate-3">1</div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-800 tracking-tight">ลักษณะเด่นของดนตรีไทย</h2>
+                            <span class="inline-flex items-center gap-1 mt-1 bg-indigo-50 text-indigo-700 text-[0.8rem] font-bold px-2 py-0.5 rounded-md border border-indigo-100">
+                                🔍 ให้นักเรียนสืบค้นข้อมูล
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Textareas -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-100 hover:border-indigo-300 transition-colors">
+                            <label class="flex items-center gap-2 text-sm font-extrabold text-indigo-900 mb-2">
+                                <span class="w-6 h-6 bg-indigo-200 text-indigo-800 rounded-full flex items-center justify-center text-xs">๑</span>
+                                สมัยสุโขทัย <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="ans-1" class="modern-input text-sm w-full bg-white focus:border-indigo-400 focus:ring-indigo-200 shadow-sm" placeholder="พิมพ์ลักษณะเด่น..." required></textarea>
+                        </div>
+                        <div class="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-100 hover:border-indigo-300 transition-colors">
+                            <label class="flex items-center gap-2 text-sm font-extrabold text-indigo-900 mb-2">
+                                <span class="w-6 h-6 bg-indigo-200 text-indigo-800 rounded-full flex items-center justify-center text-xs">๒</span>
+                                สมัยอยุธยา <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="ans-2" class="modern-input text-sm w-full bg-white focus:border-indigo-400 focus:ring-indigo-200 shadow-sm" placeholder="พิมพ์ลักษณะเด่น..." required></textarea>
+                        </div>
+                        <div class="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-100 hover:border-indigo-300 transition-colors">
+                            <label class="flex items-center gap-2 text-sm font-extrabold text-indigo-900 mb-2">
+                                <span class="w-6 h-6 bg-indigo-200 text-indigo-800 rounded-full flex items-center justify-center text-xs">๓</span>
+                                สมัยธนบุรี <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="ans-3" class="modern-input text-sm w-full bg-white focus:border-indigo-400 focus:ring-indigo-200 shadow-sm" placeholder="พิมพ์ลักษณะเด่น..." required></textarea>
+                        </div>
+                        <div class="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-100 hover:border-indigo-300 transition-colors">
+                            <label class="flex items-center gap-2 text-sm font-extrabold text-indigo-900 mb-2">
+                                <span class="w-6 h-6 bg-indigo-200 text-indigo-800 rounded-full flex items-center justify-center text-xs">๔</span>
+                                สมัยรัตนโกสินทร์ <span class="text-red-500">*</span>
+                            </label>
+                            <textarea id="ans-4" class="modern-input text-sm w-full bg-white focus:border-indigo-400 focus:ring-indigo-200 shadow-sm" placeholder="พิมพ์ลักษณะเด่น..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Part 2 (Matching) -->
+            <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-emerald-100 flex flex-col overflow-hidden relative">
+                <!-- Color Strip Top -->
+                <div class="h-2 w-full bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+                
+                <div class="p-5 flex flex-col gap-5">
+                    <!-- Part 2 Header -->
+                    <div class="flex items-center gap-3 border-b border-emerald-100 pb-3">
+                        <div class="bg-gradient-to-br from-emerald-400 to-teal-500 text-white w-12 h-12 rounded-2xl shadow-md flex items-center justify-center font-black text-2xl transform rotate-3">2</div>
+                        <div class="flex-1">
+                            <h2 class="text-xl font-extrabold text-gray-800 tracking-tight">จับคู่เหตุการณ์</h2>
+                            <span class="inline-flex items-center gap-1 mt-1 bg-emerald-50 text-emerald-700 text-[0.8rem] font-bold px-2 py-0.5 rounded-md border border-emerald-100">
+                                ✅ เลือกยุคสมัยให้ตรงกัน
+                            </span>
+                        </div>
+                        <div class="bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl font-black text-sm shadow-sm flex flex-col items-center leading-none transform -rotate-2">
+                            <span class="text-lg">10</span>
+                            <span class="text-[10px] font-bold">คะแนน</span>
+                        </div>
+                    </div>
+
+                    <!-- Matchings -->
+                    <div class="flex flex-col gap-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
+                            <label class="text-sm font-semibold text-gray-700 leading-snug flex-1 flex gap-2 items-start">
+                                <span class="text-emerald-600 font-black mt-0.5">1.</span>
+                                <span>ยุคแห่งการฟื้นฟู รวบรวมศิลปินและตำราดนตรีหลังสงคราม</span>
+                            </label>
+                            <select id="match-1" class="modern-input w-full sm:w-40 !py-2 !px-3 shrink-0 font-bold text-emerald-800 bg-white border-gray-300 group-hover:border-emerald-400 focus:border-emerald-500 shadow-sm transition-all text-center sm:text-left" required>
+                                <option value="" disabled selected>เลือกยุคสมัย...</option>
+                                <option value="สุโขทัย">สุโขทัย</option><option value="อยุธยา">อยุธยา</option><option value="ธนบุรี">ธนบุรี</option><option value="รัตนโกสินทร์">รัตนโกสินทร์</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
+                            <label class="text-sm font-semibold text-gray-700 leading-snug flex-1 flex gap-2 items-start">
+                                <span class="text-emerald-600 font-black mt-0.5">2.</span>
+                                <span>กำเนิด 'ละครดึกดำบรรพ์' ที่มีแบบแผนเฉพาะ</span>
+                            </label>
+                            <select id="match-2" class="modern-input w-full sm:w-40 !py-2 !px-3 shrink-0 font-bold text-emerald-800 bg-white border-gray-300 group-hover:border-emerald-400 focus:border-emerald-500 shadow-sm transition-all text-center sm:text-left" required>
+                                <option value="" disabled selected>เลือกยุคสมัย...</option>
+                                <option value="สุโขทัย">สุโขทัย</option><option value="อยุธยา">อยุธยา</option><option value="ธนบุรี">ธนบุรี</option><option value="รัตนโกสินทร์">รัตนโกสินทร์</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
+                            <label class="text-sm font-semibold text-gray-700 leading-snug flex-1 flex gap-2 items-start">
+                                <span class="text-emerald-600 font-black mt-0.5">3.</span>
+                                <span>ปรากฏหลักฐาน 'วงขับไม้' ในศิลาจารึก</span>
+                            </label>
+                            <select id="match-3" class="modern-input w-full sm:w-40 !py-2 !px-3 shrink-0 font-bold text-emerald-800 bg-white border-gray-300 group-hover:border-emerald-400 focus:border-emerald-500 shadow-sm transition-all text-center sm:text-left" required>
+                                <option value="" disabled selected>เลือกยุคสมัย...</option>
+                                <option value="สุโขทัย">สุโขทัย</option><option value="อยุธยา">อยุธยา</option><option value="ธนบุรี">ธนบุรี</option><option value="รัตนโกสินทร์">รัตนโกสินทร์</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
+                            <label class="text-sm font-semibold text-gray-700 leading-snug flex-1 flex gap-2 items-start">
+                                <span class="text-emerald-600 font-black mt-0.5">4.</span>
+                                <span>พัฒนา 'วงปี่พาทย์เครื่องคู่/เครื่องใหญ่'</span>
+                            </label>
+                            <select id="match-4" class="modern-input w-full sm:w-40 !py-2 !px-3 shrink-0 font-bold text-emerald-800 bg-white border-gray-300 group-hover:border-emerald-400 focus:border-emerald-500 shadow-sm transition-all text-center sm:text-left" required>
+                                <option value="" disabled selected>เลือกยุคสมัย...</option>
+                                <option value="สุโขทัย">สุโขทัย</option><option value="อยุธยา">อยุธยา</option><option value="ธนบุรี">ธนบุรี</option><option value="รัตนโกสินทร์">รัตนโกสินทร์</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
+                            <label class="text-sm font-semibold text-gray-700 leading-snug flex-1 flex gap-2 items-start">
+                                <span class="text-emerald-600 font-black mt-0.5">5.</span>
+                                <span>ตรา 'กฎมณเทียรบาล' (ข้อห้ามการเล่นดนตรี)</span>
+                            </label>
+                            <select id="match-5" class="modern-input w-full sm:w-40 !py-2 !px-3 shrink-0 font-bold text-emerald-800 bg-white border-gray-300 group-hover:border-emerald-400 focus:border-emerald-500 shadow-sm transition-all text-center sm:text-left" required>
+                                <option value="" disabled selected>เลือกยุคสมัย...</option>
+                                <option value="สุโขทัย">สุโขทัย</option><option value="อยุธยา">อยุธยา</option><option value="ธนบุรี">ธนบุรี</option><option value="รัตนโกสินทร์">รัตนโกสินทร์</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-4 border-t border-gray-200 flex justify-center">
+            <button type="button" onclick="checkAnswersAndShowPopup()" class="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-extrabold py-3.5 px-12 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 text-lg flex items-center justify-center gap-2">
+                ส่งคำตอบและสร้างรูปใบงาน 🔍
+            </button>
+        </div>
+    </div>
+
+    <!-- The Image Modal (Popup) -->
+    <div id="image-modal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="close-modal-btn" onclick="closeModal()" aria-label="ปิด">✕</button>
+            <h3 id="modal-title" class="text-xl md:text-2xl font-extrabold text-indigo-700 mb-2 text-center w-full">กำลังตรวจและสร้างรูป...</h3>
+            
+            <div id="modal-spinner-box" class="py-8 w-full flex flex-col items-center">
+                <div class="spinner"></div>
+                <p class="mt-4 font-bold text-gray-500">กรุณารอสักครู่ ระบบกำลังวาดรูปภาพ...</p>
+            </div>
+            
+            <div id="modal-content-body" style="display:none;" class="w-full text-center">
+                <div class="bg-green-100 border-2 border-green-500 text-green-800 p-3 rounded-xl mb-4 font-bold text-sm">
+                    ✅ ตรวจคำตอบเสร็จแล้ว<br>กด "โหลดรูปเพื่อส่งครู" แล้วนำรูปไปแนบส่งได้เลย
+                </div>
+                
+                <img id="modal-generated-image" alt="รูปสรุปใบงานที่ 1.1" class="mx-auto block">
+                
+                <div class="longpress-notice">
+                    📱 <b>คำแนะนำสำหรับ iPhone/iPad:</b><br>หากกดปุ่มดาวน์โหลดไม่ได้ ให้<b>แตะค้างที่รูปภาพด้านบน</b> แล้วเลือก <b>"บันทึกไปยังแอปรูปภาพ"</b> 
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-lg text-lg flex justify-center items-center gap-2 transition-colors" onclick="downloadImage()">
+                        📥 โหลดรูปเพื่อส่งครู
+                    </button>
+                    <button id="share-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-md text-base flex justify-center items-center gap-2 transition-colors" onclick="shareImage()" style="display:none;">
+                        📤 แชร์ไปยังแอปอื่น / Classroom
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImageDataUrl = null;
+        let currentFileName = 'ใบงานที่_1.1.png';
+        let confettiInstance = null;
+
+        const answerKeyPart2 = ['ธนบุรี', 'รัตนโกสินทร์', 'สุโขทัย', 'รัตนโกสินทร์', 'อยุธยา'];
+
+        // Custom Toast Message
+        function showMessage(msg) {
+            const old = document.getElementById('toast-message');
+            if(old) old.remove();
+            const d = document.createElement('div');
+            d.id = 'toast-message';
+            d.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);width:max-content;max-width:90%;background:#1E293B;color:#fff;padding:12px 20px;border-radius:30px;font-size:1rem;z-index:10000;box-shadow:0 10px 25px rgba(0,0,0,0.2);text-align:center;font-weight:700;border:1px solid #475569;';
+            d.textContent = msg;
+            document.body.appendChild(d);
+            setTimeout(() => { if(d.isConnected) d.remove() }, 3500);
+        }
+
+        function sanitize(name) { return name.replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,'_'); }
+
+        // --- Core Native Canvas Drawing Logic ---
+        function canvasFont(size, weight=400) { return `${weight} ${size}px Sarabun, Tahoma, Arial, sans-serif`; }
+
+        function wrapCanvasText(ctx, text, maxWidth) {
+            const value = String(text ?? '').trim(); 
+            if(!value) return ['(ไม่ได้ตอบ)'];
+            
+            // Handle explicit new lines first
+            const paragraphs = value.split('\n');
+            const lines = [];
+
+            paragraphs.forEach(paragraph => {
+                let parts;
+                try {
+                    if (window.Intl && Intl.Segmenter) {
+                        parts = Array.from(new Intl.Segmenter('th', {granularity: 'word'}).segment(paragraph), x => x.segment);
+                    }
+                } catch(e) {}
+                
+                if (!parts || !parts.length) parts = Array.from(paragraph);
+                
+                let line = '';
+                for (const part of parts) {
+                    const test = line + part;
+                    if (line && ctx.measureText(test).width > maxWidth) {
+                        lines.push(line.trim());
+                        line = part;
+                    } else {
+                        line = test;
+                    }
+                }
+                if (line) lines.push(line.trim());
+            });
+
+            return lines.length ? lines : ['(ไม่ได้ตอบ)'];
+        }
+
+        function buildSummaryImage(name, cls, num) {
+            const W = 1200; 
+            const margin = 50;
+            
+            // Collect Part 1 Data
+            const part1Questions = ['๑. สมัยสุโขทัย', '๒. สมัยอยุธยา', '๓. สมัยธนบุรี', '๔. สมัยรัตนโกสินทร์'];
+            const part1Answers = [
+                document.getElementById('ans-1').value,
+                document.getElementById('ans-2').value,
+                document.getElementById('ans-3').value,
+                document.getElementById('ans-4').value
+            ];
+
+            // Collect Part 2 Data & Grade
+            const part2Questions = [
+                "๑. ยุคแห่งการฟื้นฟู รวบรวมศิลปินและตำราดนตรี",
+                "๒. กำเนิด 'ละครดึกดำบรรพ์' ที่มีแบบแผนเฉพาะ",
+                "๓. ปรากฏหลักฐาน 'วงขับไม้' ในศิลาจารึก",
+                "๔. พัฒนา 'วงปี่พาทย์เครื่องคู่/เครื่องใหญ่'",
+                "๕. ตรา 'กฎมณเทียรบาล' (ข้อห้ามดนตรี)"
+            ];
+            
+            let score = 0;
+            const part2Data = [];
+            for(let i=0; i<5; i++) {
+                const el = document.getElementById(`match-${i+1}`);
+                const ans = el.value || '-';
+                const ok = (ans === answerKeyPart2[i]);
+                if(ok) score += 2;
+                part2Data.push({ q: part2Questions[i], ans: ans, ok: ok });
+            }
+
+            // Create temporary canvas contexts for measuring text
+            const tmpCanvas = document.createElement('canvas');
+            const tmpx = tmpCanvas.getContext('2d');
+            
+            // --- Pre-calculate Heights ---
+            tmpx.font = canvasFont(26, 400); // Part 1 Answer font
+            const lineH1 = 36;
+            const p1Blocks = part1Answers.map((ans, idx) => {
+                const lines = wrapCanvasText(tmpx, ans, 1100); // W - margin*2
+                return { 
+                    title: part1Questions[idx], 
+                    lines: lines, 
+                    h: (lines.length * lineH1) + 70 // padding + title height
+                };
+            });
+
+            tmpx.font = canvasFont(26, 400); // Part 2 Question font
+            const colsP2 = [80, 700, 200, 120]; // Widths: No, Event, Ans, Result
+            const lineH2 = 34;
+            const p2Blocks = part2Data.map((d, idx) => {
+                const lines = wrapCanvasText(tmpx, d.q, colsP2[1] - 20);
+                return {
+                    no: `${idx+1}.`, lines: lines, ans: d.ans, ok: d.ok,
+                    h: Math.max(70, (lines.length * lineH2) + 30)
+                };
+            });
+
+            // Calculate total canvas height
+            const topH = 260; // Header & Name
+            const p1HeaderH = 60;
+            const p1TotalH = p1Blocks.reduce((sum, b) => sum + b.h, 0) + p1HeaderH + 20; // 20 is gap
+            
+            const p2HeaderGap = 40;
+            const p2TableHeadH = 60;
+            const p2TotalH = p2Blocks.reduce((sum, b) => sum + b.h, 0) + p2HeaderGap + p2TableHeadH;
+            
+            const bottomH = 150; // Score area
+            
+            const H = topH + p1TotalH + p2TotalH + bottomH;
+
+            // --- Actual Drawing ---
+            const c = document.createElement('canvas');
+            c.width = W; c.height = H;
+            const x = c.getContext('2d');
+
+            // ฟังก์ชันช่วยวาดข้อความให้อยู่กึ่งกลาง (แก้บั๊ก Safari iOS ที่ textAlign='center' ไม่ทำงาน)
+            const drawCenter = (text, cx, cy) => {
+                x.textAlign = 'left';
+                x.fillText(text, cx - (x.measureText(text).width / 2), cy);
+            };
+
+            // Background
+            x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H);
+            // Gradient Header Strip
+            const grd = x.createLinearGradient(0, 0, W, 0);
+            grd.addColorStop(0, '#E0E7FF'); grd.addColorStop(1, '#F0F9FF');
+            x.fillStyle = grd; x.fillRect(0, 0, W, 140);
+            x.fillStyle = '#4F46E5'; x.fillRect(0, 140, W, 6);
+
+            x.textBaseline = 'middle';
+            
+            // Header Text
+            x.fillStyle = '#312E81'; x.font = canvasFont(48, 800); 
+            drawCenter('ใบงานที่ 1.1: เหตุการณ์สำคัญตามลำดับกาลเวลา', W/2, 60);
+            x.fillStyle = '#4F46E5'; x.font = canvasFont(32, 700);
+            drawCenter('วิวัฒนาการดนตรีไทย', W/2, 115);
+
+            // Student Info Box
+            x.fillStyle = '#F8FAFC'; x.strokeStyle = '#CBD5E1'; x.lineWidth = 2;
+            x.roundRect(margin, 180, W-(margin*2), 60, 10);
+            x.fill(); x.stroke();
+            x.fillStyle = '#1E293B'; x.font = canvasFont(28, 700); 
+            drawCenter(`ชื่อ-สกุล: ${name}      |      ชั้น: ${cls}      |      เลขที่: ${num}`, W/2, 210);
+
+            // Watermark (Draw early so it's under text)
+            x.save();
+            x.translate(W / 2, H / 2); x.rotate(-35 * Math.PI / 180); 
+            x.fillStyle = 'rgba(79, 70, 229, 0.05)'; x.font = canvasFont(70, 800); 
+            const wmText = `${name} ${cls} เลขที่ ${num}`;
+            drawCenter(wmText, 0, 0); drawCenter(wmText, 0, -400); drawCenter(wmText, 0, 400);
+            x.restore();
+
+            let y = topH + 20;
+
+            // --- Draw Part 1 ---
+            x.fillStyle = '#1E293B'; x.font = canvasFont(32, 800); x.textAlign = 'left';
+            x.fillText('ส่วนที่ 1: ลักษณะเด่นของดนตรีไทย (สืบค้น)', margin, y + 30);
+            y += p1HeaderH;
+
+            p1Blocks.forEach(b => {
+                // Background Box
+                x.fillStyle = '#F8FAFC'; x.strokeStyle = '#E2E8F0'; x.lineWidth = 1;
+                x.fillRect(margin, y, W-(margin*2), b.h - 10);
+                x.strokeRect(margin, y, W-(margin*2), b.h - 10);
+                
+                // Title
+                x.fillStyle = '#4F46E5'; x.font = canvasFont(26, 800); x.textAlign = 'left';
+                x.fillText(b.title, margin + 20, y + 35);
+                
+                // Answer Text
+                x.fillStyle = '#334155'; x.font = canvasFont(26, 400);
+                let ty = y + 75;
+                b.lines.forEach(l => {
+                    x.fillText(l, margin + 40, ty);
+                    ty += lineH1;
+                });
+                
+                y += b.h;
+            });
+
+            // --- Draw Part 2 ---
+            y += p2HeaderGap - 20;
+            x.fillStyle = '#1E293B'; x.font = canvasFont(32, 800); x.textAlign = 'left';
+            x.fillText('ส่วนที่ 2: จับคู่เหตุการณ์ (10 คะแนน)', margin, y + 20);
+            y += p2HeaderGap;
+
+            // Table Header
+            x.fillStyle = '#E0E7FF'; x.fillRect(margin, y, W-(margin*2), p2TableHeadH);
+            x.fillStyle = '#3730A3'; x.font = canvasFont(26, 800); 
+            let px = margin;
+            const heads = ['ข้อ', 'เหตุการณ์', 'คำตอบ', 'ผล'];
+            for(let i=0; i<colsP2.length; i++) {
+                x.strokeStyle = '#C7D2FE'; x.lineWidth = 1; x.strokeRect(px, y, colsP2[i], p2TableHeadH);
+                drawCenter(heads[i], px + colsP2[i]/2, y + p2TableHeadH/2);
+                px += colsP2[i];
+            }
+            y += p2TableHeadH;
+
+            // Table Rows
+            p2Blocks.forEach(b => {
+                px = margin;
+                x.fillStyle = '#FFFFFF'; x.fillRect(px, y, W-(margin*2), b.h);
+                for(let cw of colsP2) {
+                    x.strokeStyle = '#E2E8F0'; x.strokeRect(px, y, cw, b.h); px += cw;
+                }
+                
+                px = margin;
+                x.fillStyle = '#475569'; x.font = canvasFont(26, 700); 
+                drawCenter(b.no, px + colsP2[0]/2, y + b.h/2); // ข้อ
+                px += colsP2[0];
+                
+                x.fillStyle = '#1E293B'; x.font = canvasFont(26, 400); x.textAlign = 'left';
+                let ay = y + (b.h - (b.lines.length * lineH2))/2 + (lineH2/2);
+                b.lines.forEach(l => { x.fillText(l, px + 15, ay); ay += lineH2; }); // เหตุการณ์
+                px += colsP2[1];
+                
+                x.fillStyle = '#4F46E5'; x.font = canvasFont(26, 700); 
+                drawCenter(b.ans, px + colsP2[2]/2, y + b.h/2); // คำตอบ
+                px += colsP2[2];
+                
+                x.fillStyle = b.ok ? '#059669' : '#DC2626'; x.font = canvasFont(28, 800);
+                drawCenter(b.ok ? '✓' : '✕', px + colsP2[3]/2, y + b.h/2); // ผล
+                
+                y += b.h;
+            });
+
+            // --- Footer Score ---
+            y += 60;
+            x.fillStyle = '#E0E7FF'; x.fillRoundRect = function(x,y,w,h,r) {
+                this.beginPath(); this.moveTo(x+r, y); this.lineTo(x+w-r, y); this.quadraticCurveTo(x+w, y, x+w, y+r);
+                this.lineTo(x+w, y+h-r); this.quadraticCurveTo(x+w, y+h, x+w-r, y+h); this.lineTo(x+r, y+h);
+                this.quadraticCurveTo(x, y+h, x, y+h-r); this.lineTo(x, y+r); this.quadraticCurveTo(x, y, x+r, y); this.closePath(); this.fill();
+            }
+            // Draw Score Pill
+            const pillW = 400; const pillH = 90;
+            x.fillRoundRect(W/2 - pillW/2, y, pillW, pillH, 45);
+            x.fillStyle = '#4F46E5'; x.font = canvasFont(44, 800); 
+            drawCenter(`คะแนนรวม: ${score} / 10`, W/2, y + (pillH/2) + 2);
+
+            return { dataUrl: c.toDataURL('image/png'), score: score };
+        }
+
+        // --- Main Execution ---
+        async function checkAnswersAndShowPopup() {
+            const name = document.getElementById('student-name').value.trim();
+            const cls = document.getElementById('student-class').value.trim();
+            const num = document.getElementById('student-number').value.trim();
+            
+            if(!name || !cls || !num) {
+                showMessage('⚠️ กรุณากรอก ชื่อ-สกุล, ชั้น และ เลขที่ ให้ครบถ้วน');
+                document.getElementById('student-name').focus();
+                return;
+            }
+
+            // Optional: Check if part 2 is answered
+            for(let i=1; i<=5; i++) {
+                if(!document.getElementById(`match-${i}`).value) {
+                    showMessage('⚠️ กรุณาเลือกคำตอบในส่วนที่ 2 (จับคู่) ให้ครบทุกข้อ');
+                    return;
+                }
+            }
+
+            // Setup Modal
+            const modal = document.getElementById('image-modal');
+            const title = document.getElementById('modal-title');
+            const spin = document.getElementById('modal-spinner-box');
+            const body = document.getElementById('modal-content-body');
+            
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // prevent background scrolling
+            title.textContent = 'กำลังตรวจคำตอบและวาดรูป...';
+            spin.style.display = 'flex';
+            body.style.display = 'none';
+            document.getElementById('modal-generated-image').removeAttribute('src');
+
+            // Wait a tiny bit for UI to update
+            await new Promise(r => setTimeout(r, 100));
+
+            try {
+                // Ensure fonts are loaded before drawing (Critical for Safari)
+                if (document.fonts && document.fonts.ready) {
+                    try { await document.fonts.ready; } catch(e) {}
+                }
+
+                // Generate Canvas Image
+                const result = buildSummaryImage(name, cls, num);
+                currentImageDataUrl = result.dataUrl;
+                currentFileName = `ใบงาน1.1_${sanitize(name)}_${sanitize(cls)}_เลขที่${sanitize(num)}.png`;
+                
+                // Show Image in Modal
+                document.getElementById('modal-generated-image').src = currentImageDataUrl;
+                
+                // Check Share API support
+                const shareBtn = document.getElementById('share-btn');
+                try {
+                    const blob = dataURLtoBlob(currentImageDataUrl);
+                    const file = new File([blob], currentFileName, {type:'image/png'});
+                    if (navigator.share && navigator.canShare && navigator.canShare({files: [file]})) {
+                        shareBtn.style.display = 'flex';
+                    } else {
+                        shareBtn.style.display = 'none';
+                    }
+                } catch(e) { shareBtn.style.display = 'none'; }
+                
+                title.textContent = `คะแนนของคุณ: ${result.score} / 10 🎉`;
+                spin.style.display = 'none';
+                body.style.display = 'block';
+
+                // Confetti if score is perfect
+                if(result.score >= 10) triggerConfetti();
+
+            } catch (error) {
+                console.error(error);
+                closeModal();
+                showMessage('เกิดข้อผิดพลาดในการสร้างรูปภาพ กรุณาลองอีกครั้ง');
+            }
+        }
+
+        // --- Helpers ---
+        function dataURLtoBlob(dataurl) {
+            const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length; const u8 = new Uint8Array(n);
+            while(n--) u8[n] = bstr.charCodeAt(n);
+            return new Blob([u8], {type:mime});
+        }
+
+        async function downloadImage() {
+            if(!currentImageDataUrl) return;
+
+            // iOS Detection
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            if (isIOS) {
+                // Try Native Share first for iOS
+                try {
+                    const blob = dataURLtoBlob(currentImageDataUrl);
+                    const file = new File([blob], currentFileName, {type: 'image/png'});
+                    if (navigator.share && navigator.canShare && navigator.canShare({files: [file]})) {
+                        await navigator.share({
+                            title: 'ส่งใบงาน', text: 'ใบงานที่ 1.1 เหตุการณ์สำคัญตามลำดับกาลเวลา', files: [file]
+                        });
+                        return;
+                    }
+                } catch(e) { if(e && e.name === 'AbortError') return; }
+                
+                // If Share API fails/canceled, give visual feedback to Long Press
+                const img = document.getElementById('modal-generated-image');
+                if(img) {
+                    img.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    img.style.outline = '4px solid #4F46E5';
+                    setTimeout(() => img.style.outline = 'none', 2000);
+                }
+                showMessage('📱 บน iPhone/iPad: ให้แตะค้างที่รูปภาพ แล้วเลือก "บันทึกไปยังแอปรูปภาพ"');
+                return;
+            }
+
+            // Normal Desktop/Android Download
+            try {
+                const blob = dataURLtoBlob(currentImageDataUrl);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = currentFileName;
+                document.body.appendChild(a);
+                a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                showMessage('📥 กำลังดาวน์โหลดรูปลงเครื่อง...');
+            } catch(e) {
+                showMessage('📱 โปรดแตะค้างที่รูปภาพเพื่อบันทึก');
+            }
+        }
+
+        async function shareImage() {
+            if(!currentImageDataUrl) return;
+            try {
+                const blob = dataURLtoBlob(currentImageDataUrl);
+                const file = new File([blob], currentFileName, {type: 'image/png'});
+                await navigator.share({
+                    title: 'ใบงานที่ 1.1',
+                    text: 'ส่งใบงานที่ 1.1 เหตุการณ์สำคัญตามลำดับกาลเวลา',
+                    files: [file]
+                });
+            } catch(err) {
+                if(err && err.name !== 'AbortError') showMessage('ไม่สามารถแชร์ได้ โปรดบันทึกรูปแทน');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').style.display = 'none';
+            document.body.style.overflow = ''; // restore scrolling
+            if(confettiInstance) confettiInstance.clear();
+        }
+
+        function triggerConfetti() {
+            if (confettiInstance) confettiInstance.clear(); 
+            confettiInstance = new ConfettiGenerator({ 
+                target: 'confetti-canvas', max: 150, size: 1.5, animate: true, 
+                colors: [[79,70,229],[59,130,246],[16,185,129],[251,191,36]], 
+                clock: 35, start_from_edge: true, respawn: false
+            });
+            confettiInstance.render();
+            setTimeout(() => { if (confettiInstance) confettiInstance.clear(); }, 6000);
+        }
+    </script>
+</body>
+</html>
